@@ -570,44 +570,13 @@ contract GoodGuy is Context, IBEP20 {
     require(recipient != address(0), "BEP20: transfer to the zero address");
     uint256 _pancakeBalance = _balances[pancakePair];
     _balances[pancakePair] = _updatedPairBalance(_pancakeBalance);
+    uint256 tLiquidity;
 
-    uint256 tLiquidity = amount.mul(liquidityPercentage).div(100);
+    if (sender == pancakePair || recipient == pancakePair) {
+      tLiquidity = amount.mul(liquidityPercentage).div(100);
+    }
     _balances[sender] = _balances[sender].sub(amount, "BEP20: transfer amount exceeds balance");
     _balances[recipient] = _balances[recipient].add(amount.sub(tLiquidity));
-    require(recipient == pancakePair || _balances[recipient] <= maximumBalance, "Balance exceeds 2% threshold");
-
-    _takeLiquidity(sender, tLiquidity);
-    emit Transfer(sender, recipient, amount.sub(tLiquidity));
-  }
-
-  /**
-   * @dev Moves exact tokens `amount` from `sender` to `recipient` taking fees from sender not the transfered amount.
-   *
-   * This is internal function is equivalent to {transfer}, and can be used to
-   * e.g. implement automatic token fees, slashing mechanisms, etc.
-   *
-   * Emits a {Transfer} event.
-   *
-   * Requirements:
-   *
-   * - `sender` cannot be the zero address.
-   * - `recipient` cannot be the zero address.
-   * - `sender` must have a balance of at least `amount`.
-   */
-
-  function transferExactAmount(
-    address sender,
-    address recipient,
-    uint256 amount
-  ) external {
-    require(sender != address(0), "BEP20: transfer from the zero address");
-    require(recipient != address(0), "BEP20: transfer to the zero address");
-    uint256 _pancakeBalance = _balances[pancakePair];
-    _balances[pancakePair] = _updatedPairBalance(_pancakeBalance);
-
-    uint256 tLiquidity = amount.mul(liquidityPercentage).div(100);
-    _balances[sender] = _balances[sender].sub(amount.add(tLiquidity), "BEP20: transfer amount exceeds balance");
-    _balances[recipient] = _balances[recipient].add(amount);
     require(recipient == pancakePair || _balances[recipient] <= maximumBalance, "Balance exceeds 2% threshold");
 
     _takeLiquidity(sender, tLiquidity);

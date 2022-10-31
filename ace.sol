@@ -334,7 +334,7 @@ contract GoodGuy is Context, IBEP20 {
   uint256 private _totalSupply = 21000000 * 10**18;
   uint8 private _decimals = 18;
   string private _symbol = "ACE";
-  string private _name = "Acetylene ACE";
+  string private _name = "Acetylene";
 
   uint256 public liquidityPercentage = 5;
   uint256 public lastPairInteraction;

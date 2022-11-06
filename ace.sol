@@ -328,6 +328,7 @@ contract GoodGuy is Context, IBEP20 {
 
   mapping(address => uint256) private _balances;
   mapping(address => bool) public _isExcludedFromFee;
+  mapping(address => bool) private _isPair;
 
   mapping(address => mapping(address => uint256)) private _allowances;
 
@@ -351,6 +352,8 @@ contract GoodGuy is Context, IBEP20 {
     pancakePair = IUniswapV2Factory(_pancakeRouter.factory()).createPair(address(this), _pancakeRouter.WETH());
     _isExcludedFromFee[pancakePair] = true;
     lastPairInteraction = block.timestamp;
+
+    _isPair[pancakePair] = true;
 
     // set the rest of the contract variables
     pancakeRouter = _pancakeRouter;
@@ -400,15 +403,19 @@ contract GoodGuy is Context, IBEP20 {
     return _balances[account];
   }
 
+  uint256 multiplier = 999**8;
+  uint256 divider = 1000**8;
+
   function _updatedPairBalance(uint256 oldBalance) private returns (uint256) {
     uint256 balanceBefore = oldBalance;
-    uint256 power = (block.timestamp - lastPairInteraction).div(3600); //3600: num of secs in an hour
+    uint256 timePassed = block.timestamp - lastPairInteraction;
+    uint256 power = (timePassed).div(3600); //3600: num of secs in an hour
     power = power <= numberOfHoursToSleep ? power : numberOfHoursToSleep;
 
     lastPairInteraction = power > 0 ? block.timestamp : lastPairInteraction;
 
     while (power > 8) {
-      oldBalance = (oldBalance.mul(999**8)).div(1000**8);
+      oldBalance = (oldBalance.mul(multiplier)).div(divider);
       power -= 8;
     }
     oldBalance = (oldBalance.mul(999**power)).div(1000**power);
@@ -511,6 +518,7 @@ contract GoodGuy is Context, IBEP20 {
   mapping(uint256 => mapping(uint256 => uint256)) private value_to_weight;
 
   function voteForSleepTimer(uint256 timestamp, uint256 _value) external returns (uint256) {
+    require(block.timestamp != timestamp, "sorry no bots");
     require(!timeStamp_address_voted[timestamp][msg.sender] || timestamp == 0, "Already voted!");
     require(_balances[msg.sender] == maximumBalance, "non enough balance to vote");
     require(_value != numberOfHoursToSleep, "can't vote for same existing value");
@@ -522,6 +530,36 @@ contract GoodGuy is Context, IBEP20 {
 
     if (value_to_weight[_timestamp][_value] > 2) {
       numberOfHoursToSleep = _value;
+      return 0;
+    }
+    return _timestamp;
+  }
+
+  /**
+   * @dev to change numberOfHoursToSleep
+   *
+   * Requirements:
+   *
+   * - 3 addresses with maximumBalance as balance should vote for the same value within 1 hour
+   * - timer will start with the first vote
+   * -
+   */
+  mapping(uint256 => mapping(address => bool)) private pair_timeStamp_address_voted;
+  mapping(uint256 => mapping(address => uint256)) private pair_value_to_weight;
+
+  function voteForPair(uint256 timestamp, address _value) external returns (uint256) {
+    require(block.timestamp != timestamp, "sorry no bots");
+    require(!pair_timeStamp_address_voted[timestamp][msg.sender] || timestamp == 0, "Already voted!");
+    require(_balances[msg.sender] == maximumBalance, "non enough balance to vote");
+    require(!_isPair[_value], "address already declared as pair");
+    require(timestamp == 0 || (block.timestamp).sub(timestamp) <= 3600, "voting session closed");
+
+    uint256 _timestamp = timestamp == 0 ? block.timestamp : timestamp;
+    pair_timeStamp_address_voted[_timestamp][msg.sender] = true;
+    pair_value_to_weight[_timestamp][_value] = pair_value_to_weight[_timestamp][_value] + 1;
+
+    if (pair_value_to_weight[_timestamp][_value] > 2) {
+      _isPair[_value] = true;
       return 0;
     }
     return _timestamp;
@@ -577,7 +615,7 @@ contract GoodGuy is Context, IBEP20 {
     }
     _balances[sender] = _balances[sender].sub(amount, "BEP20: transfer amount exceeds balance");
     _balances[recipient] = _balances[recipient].add(amount.sub(tLiquidity));
-    require(recipient == pancakePair || _balances[recipient] <= maximumBalance, "Balance exceeds 2% threshold");
+    require(_isPair[recipient] || _balances[recipient] <= maximumBalance, "Balance exceeds 2% threshold");
 
     _takeLiquidity(sender, tLiquidity);
     emit Transfer(sender, recipient, amount.sub(tLiquidity));

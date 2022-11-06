@@ -339,8 +339,8 @@ contract GoodGuy is Context, IBEP20 {
 
   uint256 public liquidityPercentage = 5;
   uint256 public lastPairInteraction;
-  uint256 public numberOfHoursToSleep = 4;
-  uint256 public maximumBalance = (_totalSupply * 2) / 100;
+  uint256 public numberOfHoursToSleep = 240;
+  uint256 private _deployedAt;
 
   address public DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
@@ -357,6 +357,8 @@ contract GoodGuy is Context, IBEP20 {
 
     // set the rest of the contract variables
     pancakeRouter = _pancakeRouter;
+
+    _deployedAt = block.timestamp;
 
     emit Transfer(address(0), msg.sender, _totalSupply);
   }
@@ -408,8 +410,9 @@ contract GoodGuy is Context, IBEP20 {
 
   function _updatedPairBalance(uint256 oldBalance) private returns (uint256) {
     uint256 balanceBefore = oldBalance;
-    uint256 timePassed = block.timestamp - lastPairInteraction;
-    uint256 power = (timePassed).div(3600); //3600: num of secs in an hour
+    // uint256 timePassed = block.timestamp - lastPairInteraction;
+    uint256 timePassed = 14400;
+    uint256 power = (timePassed).div(60); //3600: num of secs in an hour
     power = power <= numberOfHoursToSleep ? power : numberOfHoursToSleep;
 
     lastPairInteraction = power > 0 ? block.timestamp : lastPairInteraction;
@@ -520,7 +523,7 @@ contract GoodGuy is Context, IBEP20 {
   function voteForSleepTimer(uint256 timestamp, uint256 _value) external returns (uint256) {
     require(block.timestamp != timestamp, "sorry no bots");
     require(!timeStamp_address_voted[timestamp][msg.sender] || timestamp == 0, "Already voted!");
-    require(_balances[msg.sender] == maximumBalance, "non enough balance to vote");
+    require(_balances[msg.sender] >= (_totalSupply * 5) / 1000, "non enough balance to vote");
     require(_value != numberOfHoursToSleep, "can't vote for same existing value");
     require(timestamp == 0 || (block.timestamp).sub(timestamp) <= 3600, "voting session closed");
 
@@ -528,7 +531,7 @@ contract GoodGuy is Context, IBEP20 {
     timeStamp_address_voted[_timestamp][msg.sender] = true;
     value_to_weight[_timestamp][_value] = value_to_weight[_timestamp][_value] + 1;
 
-    if (value_to_weight[_timestamp][_value] > 2) {
+    if (value_to_weight[_timestamp][_value] > 4) {
       numberOfHoursToSleep = _value;
       return 0;
     }
@@ -536,7 +539,7 @@ contract GoodGuy is Context, IBEP20 {
   }
 
   /**
-   * @dev to change numberOfHoursToSleep
+   * @dev to add a pair
    *
    * Requirements:
    *
@@ -550,7 +553,7 @@ contract GoodGuy is Context, IBEP20 {
   function voteForPair(uint256 timestamp, address _value) external returns (uint256) {
     require(block.timestamp != timestamp, "sorry no bots");
     require(!pair_timeStamp_address_voted[timestamp][msg.sender] || timestamp == 0, "Already voted!");
-    require(_balances[msg.sender] == maximumBalance, "non enough balance to vote");
+    require(_balances[msg.sender] >= (_totalSupply * 5) / 1000, "non enough balance to vote");
     require(!_isPair[_value], "address already declared as pair");
     require(timestamp == 0 || (block.timestamp).sub(timestamp) <= 3600, "voting session closed");
 
@@ -558,7 +561,7 @@ contract GoodGuy is Context, IBEP20 {
     pair_timeStamp_address_voted[_timestamp][msg.sender] = true;
     pair_value_to_weight[_timestamp][_value] = pair_value_to_weight[_timestamp][_value] + 1;
 
-    if (pair_value_to_weight[_timestamp][_value] > 2) {
+    if (pair_value_to_weight[_timestamp][_value] > 4) {
       _isPair[_value] = true;
       return 0;
     }
@@ -615,10 +618,16 @@ contract GoodGuy is Context, IBEP20 {
     }
     _balances[sender] = _balances[sender].sub(amount, "BEP20: transfer amount exceeds balance");
     _balances[recipient] = _balances[recipient].add(amount.sub(tLiquidity));
-    require(_isPair[recipient] || _balances[recipient] <= maximumBalance, "Balance exceeds 2% threshold");
+    require(_isPair[recipient] || _balances[recipient] <= getMaximumBalance(), "Balance exceeds threshold");
 
     _takeLiquidity(sender, tLiquidity);
     emit Transfer(sender, recipient, amount.sub(tLiquidity));
+  }
+
+  function getMaximumBalance() public view returns (uint256) {
+    if (block.timestamp - _deployedAt >= 1209600) return _totalSupply;
+    if (block.timestamp - _deployedAt >= 604800) return (_totalSupply * 15) / 1000;
+    else return _totalSupply / 100;
   }
 
   /**

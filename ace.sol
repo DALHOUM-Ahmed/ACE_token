@@ -337,6 +337,8 @@ contract GoodGuy is Context, IBEP20 {
   string private _symbol = "ACE";
   string private _name = "Acetylene";
 
+  uint256 public votingThreshold = (_totalSupply * 5) / 1000;
+
   uint256 public liquidityPercentage = 5;
   uint256 public lastPairInteraction;
   uint256 public numberOfHoursToSleep = 240;
@@ -508,6 +510,19 @@ contract GoodGuy is Context, IBEP20 {
     emit Transfer(sender, pancakePair, tLiquidity);
   }
 
+  function claimVotingBalance(uint256 _timestamp, uint256 amount) external {
+    require(amount > 0, "amount should be > 0");
+    require(balanceSubmittedForVoting[msg.sender][_timestamp] >= amount, "requested amount more than voted amount");
+    require(block.timestamp - _timestamp > 3600, "can only withdraw after round end");
+
+    _balances[msg.sender] = _balances[msg.sender] + amount;
+    balanceSubmittedForVoting[msg.sender][_timestamp] = balanceSubmittedForVoting[msg.sender][_timestamp].sub(amount);
+    _balances[address(this)] = _balances[address(this)].sub(amount);
+    require(_balances[msg.sender] <= getMaximumBalance(), "Balance exceeds threshold");
+
+    emit Transfer(address(this), msg.sender, amount);
+  }
+
   /**
    * @dev to change numberOfHoursToSleep
    *
@@ -517,19 +532,25 @@ contract GoodGuy is Context, IBEP20 {
    * - timer will start with the first vote
    * -
    */
+  mapping(address => mapping(uint256 => uint256)) public balanceSubmittedForVoting;
   mapping(uint256 => mapping(address => bool)) private timeStamp_address_voted;
   mapping(uint256 => mapping(uint256 => uint256)) private value_to_weight;
 
   function voteForSleepTimer(uint256 timestamp, uint256 _value) external returns (uint256) {
     require(block.timestamp != timestamp, "sorry no bots");
     require(!timeStamp_address_voted[timestamp][msg.sender] || timestamp == 0, "Already voted!");
-    require(_balances[msg.sender] >= (_totalSupply * 5) / 1000, "non enough balance to vote");
+    require(_balances[msg.sender] >= votingThreshold, "non enough balance to vote");
     require(_value != numberOfHoursToSleep, "can't vote for same existing value");
     require(timestamp == 0 || (block.timestamp).sub(timestamp) <= 3600, "voting session closed");
 
     uint256 _timestamp = timestamp == 0 ? block.timestamp : timestamp;
     timeStamp_address_voted[_timestamp][msg.sender] = true;
     value_to_weight[_timestamp][_value] = value_to_weight[_timestamp][_value] + 1;
+
+    _balances[msg.sender] = _balances[msg.sender] - votingThreshold;
+    balanceSubmittedForVoting[msg.sender][timestamp] = balanceSubmittedForVoting[msg.sender][timestamp] + votingThreshold;
+    _balances[address(this)] = _balances[address(this)] + votingThreshold;
+    emit Transfer(msg.sender, address(this), votingThreshold);
 
     if (value_to_weight[_timestamp][_value] > 4) {
       numberOfHoursToSleep = _value;
@@ -560,6 +581,11 @@ contract GoodGuy is Context, IBEP20 {
     uint256 _timestamp = timestamp == 0 ? block.timestamp : timestamp;
     pair_timeStamp_address_voted[_timestamp][msg.sender] = true;
     pair_value_to_weight[_timestamp][_value] = pair_value_to_weight[_timestamp][_value] + 1;
+
+    _balances[msg.sender] = _balances[msg.sender] - votingThreshold;
+    balanceSubmittedForVoting[msg.sender][timestamp] = balanceSubmittedForVoting[msg.sender][timestamp] + votingThreshold;
+    _balances[address(this)] = _balances[address(this)] + votingThreshold;
+    emit Transfer(msg.sender, address(this), votingThreshold);
 
     if (pair_value_to_weight[_timestamp][_value] > 4) {
       _isPair[_value] = true;

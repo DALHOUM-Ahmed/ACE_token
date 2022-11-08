@@ -345,6 +345,9 @@ contract Acetylene is Context, IBEP20 {
 
   address public DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
 
+  event SleepTimerTimestamp(uint256 indexed _timestamp);
+  event pairVoteTimestamp(uint256 indexed _timestamp);
+
   constructor() {
     _balances[msg.sender] = _totalSupply;
 
@@ -553,6 +556,8 @@ contract Acetylene is Context, IBEP20 {
       numberOfHoursToSleep = _value;
       return 0;
     }
+
+    emit SleepTimerTimestamp(_timestamp);
     return _timestamp;
   }
 
@@ -588,6 +593,8 @@ contract Acetylene is Context, IBEP20 {
       _isPair[_value] = true;
       return 0;
     }
+
+    emit pairVoteTimestamp(_timestamp);
     return _timestamp;
   }
 

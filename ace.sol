@@ -327,8 +327,7 @@ contract Acetylene is Context, IBEP20 {
   IUniswapV2Router02 public pancakeRouter;
 
   mapping(address => uint256) private _balances;
-  mapping(address => bool) public _isExcludedFromFee;
-  mapping(address => bool) private _isPair;
+  mapping(address => bool) public _isPair;
 
   mapping(address => mapping(address => uint256)) private _allowances;
 
@@ -352,7 +351,6 @@ contract Acetylene is Context, IBEP20 {
     IUniswapV2Router02 _pancakeRouter = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1); //0x10ED43C718714eb63d5aA57B78B54704E256024E);
     // Create a uniswap pair for this new token
     pancakePair = IUniswapV2Factory(_pancakeRouter.factory()).createPair(address(this), _pancakeRouter.WETH());
-    _isExcludedFromFee[pancakePair] = true;
     lastPairInteraction = block.timestamp;
 
     _isPair[pancakePair] = true;

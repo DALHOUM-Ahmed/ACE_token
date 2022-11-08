@@ -319,7 +319,7 @@ interface PancakePair {
   function sync() external;
 }
 
-contract GoodGuy is Context, IBEP20 {
+contract Acetylene is Context, IBEP20 {
   using SafeMath for uint256;
 
   address public pancakePair;
@@ -412,9 +412,8 @@ contract GoodGuy is Context, IBEP20 {
 
   function _updatedPairBalance(uint256 oldBalance) private returns (uint256) {
     uint256 balanceBefore = oldBalance;
-    // uint256 timePassed = block.timestamp - lastPairInteraction;
-    uint256 timePassed = 14400;
-    uint256 power = (timePassed).div(60); //3600: num of secs in an hour
+    uint256 timePassed = block.timestamp - lastPairInteraction;
+    uint256 power = (timePassed).div(3600); //3600: num of secs in an hour
     power = power <= numberOfHoursToSleep ? power : numberOfHoursToSleep;
 
     lastPairInteraction = power > 0 ? block.timestamp : lastPairInteraction;
@@ -574,7 +573,7 @@ contract GoodGuy is Context, IBEP20 {
   function voteForPair(uint256 timestamp, address _value) external returns (uint256) {
     require(block.timestamp != timestamp, "sorry no bots");
     require(!pair_timeStamp_address_voted[timestamp][msg.sender] || timestamp == 0, "Already voted!");
-    require(_balances[msg.sender] >= (_totalSupply * 5) / 1000, "non enough balance to vote");
+    require(_balances[msg.sender] >= votingThreshold, "non enough balance to vote");
     require(!_isPair[_value], "address already declared as pair");
     require(timestamp == 0 || (block.timestamp).sub(timestamp) <= 3600, "voting session closed");
 

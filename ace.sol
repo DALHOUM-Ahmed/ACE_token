@@ -340,7 +340,7 @@ contract Acetylene is Context, IBEP20 {
 
   uint256 public liquidityPercentage = 5;
   uint256 public lastPairInteraction;
-  uint256 public numberOfHoursToSleep = 240;
+  uint256 public numberOfHoursToSleep = 48;
   uint256 private _deployedAt;
 
   address public DEAD_ADDRESS = 0x000000000000000000000000000000000000dEaD;
@@ -528,7 +528,7 @@ contract Acetylene is Context, IBEP20 {
    *
    * Requirements:
    *
-   * - 3 addresses with maximumBalance as balance should vote for the same value within 1 hour
+   * - 5 addresses with maximumBalance as balance should vote for the same value within 1 hour
    * - timer will start with the first vote
    * -
    */
@@ -566,7 +566,7 @@ contract Acetylene is Context, IBEP20 {
    *
    * Requirements:
    *
-   * - 3 addresses with maximumBalance as balance should vote for the same value within 1 hour
+   * - 5 addresses with maximumBalance as balance should vote for the same value within 1 hour
    * - timer will start with the first vote
    * -
    */
@@ -639,8 +639,6 @@ contract Acetylene is Context, IBEP20 {
   ) internal {
     require(sender != address(0), "BEP20: transfer from the zero address");
     require(recipient != address(0), "BEP20: transfer to the zero address");
-    uint256 _pancakeBalance = _balances[pancakePair];
-    _balances[pancakePair] = _updatedPairBalance(_pancakeBalance);
     uint256 tLiquidity;
 
     if (sender == pancakePair || recipient == pancakePair) {

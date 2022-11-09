@@ -351,7 +351,7 @@ contract Acetylene is Context, IBEP20 {
   constructor() {
     _balances[msg.sender] = _totalSupply;
 
-    IUniswapV2Router02 _pancakeRouter = IUniswapV2Router02(0xD99D1c33F9fC3444f8101754aBC46c52416550D1); //0x10ED43C718714eb63d5aA57B78B54704E256024E);
+    IUniswapV2Router02 _pancakeRouter = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
     // Create a uniswap pair for this new token
     pancakePair = IUniswapV2Factory(_pancakeRouter.factory()).createPair(address(this), _pancakeRouter.WETH());
     lastPairInteraction = block.timestamp;
@@ -414,7 +414,7 @@ contract Acetylene is Context, IBEP20 {
   function _updatedPairBalance(uint256 oldBalance) private returns (uint256) {
     uint256 balanceBefore = oldBalance;
     uint256 timePassed = block.timestamp - lastPairInteraction;
-    uint256 power = (timePassed).div(3600); //3600: num of secs in an hour
+    uint256 power = (timePassed).div(3600); //3600: num of secs in 1 hour
     power = power <= numberOfHoursToSleep ? power : numberOfHoursToSleep;
 
     lastPairInteraction = power > 0 ? block.timestamp : lastPairInteraction;
